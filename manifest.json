@@ -1,0 +1,17 @@
+{
+	"manifest_version": 3,
+	"name": "ATF Index",
+	"version": "0.1",
+	"permissions": [
+		"activeTab",
+		"webNavigation",
+		"debugger"
+	],
+	"content_scripts": [{
+		"matches": [
+			"<all_urls>"
+		],
+		"js": ["jquery-3.2.1.min.js", "atfindex.js", "FileSaver.js"],
+		"run_at":"document_end"
+	}]
+} 

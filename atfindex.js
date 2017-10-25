@@ -6,6 +6,160 @@
  * @date:   2017-05-30
  */
 
+/*
+    PLUGIN configuration options
+*/
+var VERBOSITY="OUTPUT"; //DEBUG, WARNING, OUTPUT (default)
+var savePageProfile=false;
+var stats = {}
+
+//Global variables
+var output="";
+// window size
+var screenRect = {};
+screenRect.left   = 0;
+screenRect.top    = 0;
+screenRect.right  = $(window).width();
+screenRect.bottom = $(window).height();
+
+if (!screenRect.right)  screenRect.right = 1024;
+if (!screenRect.bottom) screenRect.bottom = 768;
+
+//Function callback install
+window.addEventListener("load", function(event) {
+    log("window onload", "DEBUG")
+    setTimeout(function(){
+        calculateATF()
+    }, 1000);
+});
+
+
+//Main function
+function calculateATF(){
+    var imgs = document.getElementsByTagName("img");
+    log("Number of imgs found: " + imgs.length);
+
+    var hashImgs = {};
+    var countATF = 0;
+    var img_pixels = 0;
+
+    for (i = 0; i < imgs.length; i++) {
+        var rect = imgs[i].getBoundingClientRect()
+        
+        imgs[i].onscreen = intersectRect(rect, screenRect);
+
+        if (imgs[i].onscreen) {
+            imgs[i].screen_area = overlapRect(screenRect, rect);
+            if (imgs[i].screen_area > 0) countATF+=1;
+            img_pixels += imgs[i].screen_area;
+        }
+
+        var key = geturlkey(imgs[i].src);
+        if ( !(key in hashImgs) ) {
+            hashImgs[ key ] = imgs[i];
+        } else {
+            log("Repeated img <" + i + ">: "+ imgs[i].src, 'WARNING');
+        }
+    }
+
+    var imgResource = getImgRes();
+
+    //Setting load time on page imgs
+    for (i = 0; i < imgResource.length; i++) {
+        var load_time = imgResource[i].responseEnd;
+
+        var imgsrc = geturlkey(imgResource[i].name);
+        if (imgsrc in hashImgs){
+            hashImgs[ imgsrc ].loadtime = load_time;
+        } 
+    }
+
+    log("Img pixels: "          + img_pixels);
+    log("Distinct img sources Found: " + Object.keys(hashImgs).length);
+    //log(imgResource.length);
+
+    //ATF pixel img loaded 
+    img_pixels = 0; 
+    var screenimgs = [];
+
+    for (i = 0; i < imgs.length; i++){
+        if ('loadtime' in imgs[i])
+            if (imgs[i].onscreen && (imgs[i].screen_area > 0) ) {
+                screenimgs.push(imgs[i]);
+                img_pixels += imgs[i].screen_area;
+            }
+    }
+    
+    screenimgs.sort(function(a,b){
+        return a.loadtime - b.loadtime;
+    });
+
+    log("Images above the fold considered: " + screenimgs.length)
+
+
+    log("---- OPTIMISTIC ATF ----", "DEBUG");
+    var count_pixels = recordImgs(screenimgs, stats, false);
+
+    // log("---- PESSIMISTIC ATF ----");
+    // var count_pixels = recordImgs(screenimgs, stats, true);
+    
+    var t = performance.timing;
+    stats.dom = t.domContentLoadedEventEnd - t.fetchStart;
+    stats.plt = t.loadEventEnd             - t.fetchStart;
+
+    var page_img_ratio = 1.0*count_pixels / (screenRect.right * screenRect.bottom);
+    log("count_pixels:" + count_pixels);
+    log("Image to page ratio: " + page_img_ratio);
+    
+    stats.count_pixels   = count_pixels;
+    stats.right          = screenRect.right;
+    stats.bottom         = screenRect.bottom;
+    stats.atf            = stats.atf_integral;
+    stats.ii_plt = 0.0;
+    stats.ii_atf = 0.0;
+    stats.oi_plt = 0.0;
+    stats.oi_atf = 0.0;
+    stats.bi_plt = 0.0;
+    stats.bi_atf = 0.0;
+
+    //Printing results
+    log("DOM:    " + stats.dom.toFixed(2) )
+    log("II_plt: " + stats.ii_plt.toFixed(2))
+    log("II_atf: " + stats.ii_atf.toFixed(2))
+    log("OI_plt: " + stats.oi_plt.toFixed(2))
+    log("OI_atf: " + stats.oi_atf.toFixed(2))
+    log("BI_plt: " + stats.bi_plt.toFixed(2))
+    log("BI_atf: " + stats.bi_atf.toFixed(2))
+    log("ATF:    " + stats.atf.toFixed(2) )
+    log("PLT:    " + stats.plt.toFixed(2) )
+
+    if (savePageProfile==true){
+        profileAndWrite(imgs, stats);
+
+        var pageurl = geturlkey(window.location.toString());
+        var filename  = "profile_"+pageurl+".json";
+            
+        var obj = {}
+        obj[pageurl] = stats;
+        writeObjToFile(obj, filename)
+    }
+
+    console.log(output)
+}
+
+
+function log(str, out="OUTPUT"){
+    if (out=="DEBUG" && VERBOSITY=="DEBUG"){
+        console.log(str);
+    } else if (out == "WARNING" && (VERBOSITY=="WARNING" || VERBOSITY=="DEBUG")){
+        output = output + "WARNING: " + str + "\n";
+    } else if (out == "OUTPUT"){
+        output = output + str + "\n";
+    } else {
+        //Suppress output
+    }
+}
+
 function intersectRect(r1, r2) {
   return !(r2.left > r1.right || 
            r2.right < r1.left || 
@@ -44,20 +198,11 @@ function getImgRes(){
         imgResource.push( resourceList[i] );
     }
 
-    console.log("Image resources found: " + imgResource.length);
+    log("Image resources found: " + imgResource.length);
 
     return imgResource;
 }
 
-// window size
-var screenRect = {};
-screenRect.left   = 0;
-screenRect.top    = 0;
-screenRect.right  = $(window).width();
-screenRect.bottom = $(window).height();
-
-if (!screenRect.right)  screenRect.right = 1024;
-if (!screenRect.bottom) screenRect.bottom = 768;
 
 //Generate new screen bitmap
 
@@ -109,7 +254,7 @@ function recordImgs(screenimgs, stats, reverse){
     for (var i=0; i<screenimgs.length; i++){
         if (!('loadtime' in screenimgs[i])) continue;
         if (count[i]==0) {
-            //console.log("Skipping image [" + i + "], loadtime " + screenimgs[i].loadtime + ": " +screenimgs[i]);
+            log("Skipping image [" + i + "], loadtime " + screenimgs[i].loadtime + ": " +screenimgs[i], "WARNING");
             continue;
         }
         
@@ -121,29 +266,22 @@ function recordImgs(screenimgs, stats, reverse){
         if (loadtime > atf_instant){
             atf_instant = screenimgs[i].loadtime;
         }
-        console.log(screenimgs[i]);
-        console.log("Img [" + i + "]: " + count[i] + ", ratio = " +  1.0*count[i]/count_pixels + ", loadtime " + screenimgs[i].loadtime + ". atf_integral: " + atf_integral );
+        log(screenimgs[i], "DEBUG");
+        log("Img [" + i + "]: " + count[i] + ", ratio = " +  1.0*count[i]/count_pixels + ", loadtime " + screenimgs[i].loadtime + ". atf_integral: " + atf_integral, "DEBUG" );
     }
     
-    var stat = {}
-    console.log("ATFintegral: " + atf_integral);
-    console.log("ATFinstant:  " + atf_instant);
+    log("ATFintegral: " + atf_integral);
+    log("ATFinstant:  " + atf_instant);
     
-    stat.atf_integral   = atf_integral;
-    stat.atf_instant    = atf_instant;
+    stats.atf_integral   = atf_integral;
+    stats.atf_instant    = atf_instant;
 
-    if (reverse == true){
-        stats.pessimistic = stat;
-    } else {
-        stats.optimistic  = stat;
-    }
     return count_pixels;
 }
 
 function recordImg(img, bitmap, reverse){
     var rect = img.getBoundingClientRect();
-    //console.log("START Img (" +rect.width+ "x"+rect.height+") @ ("+rect.left+","+rect.top+") : " + (rect.width*rect.height) );
-
+    
     var count = 0;
     if ( !('loadtime' in img) ) return 0;
 
@@ -161,12 +299,11 @@ function recordImg(img, bitmap, reverse){
                 bitmap[x][y] = img;
                 count+=1
             } else {
-                //console.log( "Overlap at ("+x+","+y+")")
+                log( "Overlap at ("+x+","+y+")", "WARNING")
             }
         }
     }
 
-    //console.log("Img (" +rect.width+ "x"+rect.height+") @ ("+rect.left+","+rect.top+") : " + (rect.width*rect.height) + ", painted: " + count + ". Ratio: " + (count/(rect.width*rect.height)));
     if(reverse){
         img.pessimistic = count;
     } else {
@@ -176,127 +313,6 @@ function recordImg(img, bitmap, reverse){
     return count;
 }
 
-//get video ready state
-function setVideoListener(){
-    var videos = document.getElementsByTagName('video');
-    if (videos.length == 0) {
-        console.log("No video element found.")
-        return;
-    }
-
-    for (var i=0; i<videos.length; i++){
-        videos[i].addEventListener('loadeddata', function() {
-            if(this.readyState >= 3) {
-                var d = new Date();
-                var n = d.getTime();
-                var video_load = n - performance.timing.fetchStart;
-                console.log("video: " + this.src + ", loaded at: " + video_load);
-            }
-        });
-    }   
-}
-
-/**
-    Research questions
-    - Are resources similar to HAR?
-    - Are there repeated entries in resources list?
-*/
-function calculateATF(){
-    var imgs = document.getElementsByTagName("img");
-    console.log("Number of imgs found: " + imgs.length);
-
-    var hashImgs = {};
-    var countATF = 0;
-    var img_pixels = 0;
-
-    for (i = 0; i < imgs.length; i++) {
-        var rect = imgs[i].getBoundingClientRect()
-        
-        imgs[i].onscreen = intersectRect(rect, screenRect);
-
-        if (imgs[i].onscreen) {
-            imgs[i].screen_area = overlapRect(screenRect, rect);
-            if (imgs[i].screen_area > 0) countATF+=1;
-            img_pixels += imgs[i].screen_area;
-        }
-
-        var key = geturlkey(imgs[i].src);
-        if ( !(key in hashImgs) ) {
-            hashImgs[ key ] = imgs[i];
-        } else {
-            console.log("Repeated img <" + i + ">: "+ imgs[i].src);
-        }
-    }
-
-    var imgResource = getImgRes();
-
-    //Setting load time on page imgs
-    for (i = 0; i < imgResource.length; i++) {
-        var load_time = imgResource[i].responseEnd;
-
-        var imgsrc = geturlkey(imgResource[i].name);
-        if (imgsrc in hashImgs){
-            hashImgs[ imgsrc ].loadtime = load_time;
-        } 
-    }
-
-    console.log("Img pixels: "          + img_pixels);
-
-    console.log("Distinct img sources Found: " + Object.keys(hashImgs).length);
-    console.log(imgResource.length);
-
-    //ATF pixel img loaded 
-    img_pixels = 0; 
-    var screenimgs = [];
-
-    for (i = 0; i < imgs.length; i++){
-        if ('loadtime' in imgs[i])
-            if (imgs[i].onscreen && (imgs[i].screen_area > 0) ) {
-                screenimgs.push(imgs[i]);
-                img_pixels += imgs[i].screen_area;
-            }
-    }
-    
-    screenimgs.sort(function(a,b){
-        return a.loadtime - b.loadtime;
-    });
-
-    console.log("Images above the fold considered: " + screenimgs.length)
-
-    var stats = {}
-
-    console.log("---- OPTIMISTIC ATF ----");
-    recordImgs(screenimgs, stats, false);
-
-    console.log("---- PESSIMISTIC ATF ----");
-    var count_pixels = recordImgs(screenimgs, stats, true);
-    
-    var t = performance.timing;
-    var domload = t.domContentLoadedEventEnd - t.fetchStart;
-    var onload  = t.loadEventEnd             - t.fetchStart;
-
-    var page_img_ratio = 1.0*count_pixels / (screenRect.right * screenRect.bottom);
-    stats.count_pixels   = count_pixels;
-    console.log("count_pixels:" + count_pixels);
-    console.log("Image to page ratio: " + page_img_ratio);
-    console.log("DOMload:     " + domload);
-    console.log("onload:      " + onload);
-
-
-    stats.domload        = domload;
-    stats.onload         = onload;
-    stats.right          = screenRect.right;
-    stats.bottom         = screenRect.bottom;
-
-
-    profileAndWrite(imgs, stats);
-    var pageurl = geturlkey(window.location.toString());
-    var filename  = "profile_"+pageurl+".json";
-        
-    var obj = {}
-    obj[pageurl] = stats;
-    writeObjToFile(obj, filename)
-}
 
 
 function compareList(hashImgs, imgResource){
@@ -313,7 +329,7 @@ function compareList(hashImgs, imgResource){
     var imgKeys = Object.keys(hashImgs);
     var resKeys = Object.keys(hashRes);
 
-    console.log("Distinct imgs: " + imgKeys.length  + ", Distinct res: " + resKeys.length);
+    log("Distinct imgs: " + imgKeys.length  + ", Distinct res: " + resKeys.length);
     
     //Comparing a to b:
     var count_no_img = 0;
@@ -323,7 +339,7 @@ function compareList(hashImgs, imgResource){
         key = imgKeys[i];
         if ( !(key in hashRes) ){
             count_no_img += 1;
-            console.log('Resource missing for img key: ' + key);
+            log('Resource missing for img key: ' + key, "WARNING");
         }
     }
 
@@ -332,23 +348,13 @@ function compareList(hashImgs, imgResource){
         if ( !(key in hashImgs) ){
             count_no_res += 1;
             res = hashRes[key];
-            console.log('Resource missing for res key name <' +res[1]+ ">:" + res[0].name);
+            log('Resource missing for res key name <' +res[1]+ ">:" + res[0].name, "WARNING");
         }
     }
 
-    console.log("Missing imgs on res: " + count_no_img);
-    console.log("Missing res on imgs: " + count_no_res);
+    log("Missing imgs on res: " + count_no_img, "WARNING");
+    log("Missing res on imgs: " + count_no_res, "WARNING");
 }
-//compareList(hashImgs, imgResource);
-window.addEventListener("load", function(event) {
-    console.log("window onload")
-    setTimeout(function(){
-        calculateATF()
-    }, 1000);
-});
-
-console.log("ATFindex loaded");
-setVideoListener();
 
 function getElementsByXY(x,y){
     var clickX = x
@@ -412,7 +418,10 @@ function profileAndWrite(imgs, stats){
 }
 
 function writeObjToFile(object, filename){
-    console.log("Saving object to file: " + filename);
+    log("Saving object to file: " + filename, "DEBUG");
     var blob = new Blob([JSON.stringify(object)], {type: "text/plain;charset=utf-8"});
     saveAs(blob, filename);
 }
+
+log("ATFindex loaded", "DEBUG");
+

@@ -20,4 +20,5 @@ the Web performance metrics calculated by the plugin.
 ![Image of plugin in action](https://github.com/TeamRossi/ATF-chrome-plugin/raw/master/Plugin-example.png "Image of plugin in action")
 
 ## More info
-Visit our project page: http://perso.telecom-paristech.fr/~drossi/index.php?n=Dataset.WebMOS
+For more insights, scientific details, datasets etc. visit our project page: https://newnet.telecom-paristech.fr/index.php/webqoe/
+

@@ -10,7 +10,7 @@
     PLUGIN configuration options
 */
 var VERBOSITY="OUTPUT"; //DEBUG, WARNING, OUTPUT (default)
-var savePageProfile=false;
+var savePageProfile=true;
 var stats = {}
 
 //Global variables
@@ -50,7 +50,7 @@ function calculateATF(){
 
         if (imgs[i].onscreen) {
             imgs[i].screen_area = overlapRect(screenRect, rect);
-            if (imgs[i].screen_area > 0) countATF+=1;
+            if (imgs[i].screen_area >= 0) countATF+=1;
             img_pixels += imgs[i].screen_area;
         }
 
@@ -84,7 +84,7 @@ function calculateATF(){
 
     for (i = 0; i < imgs.length; i++){
         if ('loadtime' in imgs[i])
-            if (imgs[i].onscreen && (imgs[i].screen_area > 0) ) {
+            if (imgs[i].onscreen && (imgs[i].screen_area >= 0) ) {
                 screenimgs.push(imgs[i]);
                 img_pixels += imgs[i].screen_area;
             }
@@ -121,6 +121,21 @@ function calculateATF(){
     stats.oi_atf = 0.0;
     stats.bi_plt = 0.0;
     stats.bi_atf = 0.0;
+
+    stats.timing    = t;
+    stats.resources = window.performance.getEntriesByType("resource");
+
+
+    var tags = ['img', 'map', 'area', 'canvas', 'figcaption', 'figure', 'picture', 'audio', 'source', 'track', 'video', 'object', 'a']
+    var list_dom = [];
+    for (i=0; i<tags.length; i++){
+        var elmts = document.getElementsByTagName(tags[i]);
+
+        for (j=0; j<elmts.length; j++){
+            list_dom.push( obj_dict(elmts[j]) );
+        }
+    }
+    stats.list_dom = list_dom;
 
     //Printing results
     log("DOM:    " + stats.dom.toFixed(2) )
@@ -314,7 +329,44 @@ function recordImg(img, bitmap, reverse){
 }
 
 
+function isDict(v) {
+    return typeof v==='object' && v!==null && !(v instanceof Array) && !(v instanceof Date);
+}
+//Recursive object clean-up for easier storage
+function obj_dict(obj){
 
+    var new_obj = {}
+    for (var prop in obj){
+
+        if ( isDict(obj[prop]) ) {
+            new_obj[prop] = clean_dict(obj[prop])
+        } else {
+
+            if (obj[prop] == null) continue;
+            if (obj[prop] == '') continue;
+            if (obj[prop] == {}) continue;
+            if (obj[prop].length == 0) continue;
+
+            new_obj[prop] = obj[prop]
+        }
+
+    }
+    return new_obj
+}
+
+function clean_dict(obj){
+
+    var new_obj = {}
+    for (var prop in obj){
+
+        if (obj[prop] == null) continue;
+        if (obj[prop] == '') continue;
+        if (obj[prop] == {}) continue;
+        if (obj[prop].length == 0) continue;
+
+    }
+    return new_obj
+}
 function compareList(hashImgs, imgResource){
     var hashRes = {}
     for (var i =0; i<imgResource.length; i++){
@@ -354,36 +406,6 @@ function compareList(hashImgs, imgResource){
 
     log("Missing imgs on res: " + count_no_img, "WARNING");
     log("Missing res on imgs: " + count_no_res, "WARNING");
-}
-
-function getElementsByXY(x,y){
-    var clickX = x
-        ,clickY = y
-        ,list
-        ,offset
-        ,range
-        ,body = $('body').parents();
-
-    list = $('body *').filter(function() {
-        offset = $(this).offset();
-        range = {
-            x: [ offset.left,
-                offset.left + $(this).outerWidth() ],
-            y: [ offset.top,
-                offset.top + $(this).outerHeight() ]
-        };
-
-        return (clickX >= range.x[0] && clickX <= range.x[1]) && (clickY >= range.y[0] && clickY <= range.y[1])
-
-    });
-
-    list = list.add(body);
-    list = list.map(function() {
-        return "<" + this.tagName + ": " + this.nodeName + ',' + this.className+"> "
-    }).get();
-
-    alert(list)
-;    return false;
 }
 
 function getParameterOrNull(obj, parameter){

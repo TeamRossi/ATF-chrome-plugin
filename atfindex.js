@@ -12,6 +12,7 @@
 var VERBOSITY="OUTPUT"; //DEBUG, WARNING, OUTPUT (default)
 var savePageProfile=true;
 var stats = {}
+var delay_to_calculate = 4000;
 
 //Global variables
 var output="";
@@ -30,7 +31,7 @@ window.addEventListener("load", function(event) {
     log("window onload", "DEBUG")
     setTimeout(function(){
         calculateATF()
-    }, 1000);
+    }, delay_to_calculate);
 });
 
 
@@ -111,19 +112,19 @@ function calculateATF(){
     log("count_pixels:" + count_pixels);
     log("Image to page ratio: " + page_img_ratio);
     
+    var resources = window.performance.getEntriesByType("resource");
+   
     stats.count_pixels   = count_pixels;
     stats.right          = screenRect.right;
     stats.bottom         = screenRect.bottom;
     stats.atf            = stats.atf_integral;
-    stats.ii_plt = 0.0;
-    stats.ii_atf = 0.0;
-    stats.oi_plt = 0.0;
-    stats.oi_atf = 0.0;
-    stats.bi_plt = 0.0;
-    stats.bi_atf = 0.0;
+    stats.ii_plt         = index_metric(resources, stats.dom, stats.plt, metric='image');
+    stats.ii_atf         = index_metric(resources, stats.dom, stats.atf, metric='image');
+    stats.oi_plt         = index_metric(resources, stats.dom, stats.plt, metric='object');
+    stats.oi_atf         = index_metric(resources, stats.dom, stats.atf, metric='object');
+    stats.bi_plt         = index_metric(resources, stats.dom, stats.plt, metric='bytes');
+    stats.bi_atf         = index_metric(resources, stats.dom, stats.atf, metric='bytes');
 
-    stats.timing    = t;
-    stats.resources = window.performance.getEntriesByType("resource");
 
 
     var tags = ['img', 'map', 'area', 'canvas', 'figcaption', 'figure', 'picture', 'audio', 'source', 'track', 'video', 'object', 'a']
@@ -135,7 +136,10 @@ function calculateATF(){
             list_dom.push( obj_dict(elmts[j]) );
         }
     }
-    stats.list_dom = list_dom;
+    
+    stats.timing         = t;
+    stats.resources      = resources;
+    stats.list_dom       = list_dom;
 
     //Printing results
     log("DOM:    " + stats.dom.toFixed(2) )
@@ -160,6 +164,40 @@ function calculateATF(){
     }
 
     console.log(output)
+}
+
+function index_metric(objects, min_time, max_time, metric='bytes'){
+    //types = img, css, link , script
+    var total_cost = 0.0;
+    var index      = 0.0;
+
+    for (var i=0; i<objects.length; i++){
+        var loadtime = objects[i]['responseEnd'];
+        var obj_type = objects[i]['initiatorType'];
+        var obj_size = objects[i]['decodedBodySize'];
+
+        var weight = 1.0;
+        if (metric == 'images' && obj_type != 'img') weight = 0.0; 
+
+        //if (loadtime < min_time) loadtime = min_time;
+        if (loadtime > max_time) continue;
+
+        if (metric == 'object')
+            cost_metric = 1.0
+        else
+            cost_metric = obj_size;
+
+        cost   = weight*cost_metric
+        index += loadtime * cost
+
+        total_cost+= cost
+    }
+
+    if (total_cost > 0.0){
+        index /= total_cost;
+    }
+
+    return index 
 }
 
 

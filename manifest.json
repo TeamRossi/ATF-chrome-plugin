@@ -1,12 +1,17 @@
 {
-	"manifest_version": 3,
+	"manifest_version": 2,
 	"name": "Approximate ATF",
-	"version": "1.0",
+	"short_name": "ATF",
+	"version": "1.12",
 	"permissions": [
 		"activeTab",
 		"webNavigation",
-		"debugger"
+		"debugger",
+		"storage"
 	],
+	"icons": {"128": "ATF128.png" },
+	"options_page": "options.html",
+ 	"description": "Obtain advanced web QoS metrics for pages you visit and an approximation of the above-the-fold time!", 
 	"content_scripts": [{
 		"matches": [
 			"<all_urls>"

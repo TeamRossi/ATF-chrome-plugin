@@ -9,10 +9,24 @@
 /*
     PLUGIN configuration options
 */
-var VERBOSITY="OUTPUT"; //DEBUG, WARNING, OUTPUT (default)
-var savePageProfile=true;
+var VERBOSITY; //DEBUG, WARNING, OUTPUT (default)
+var savePageProfile; //0:Nothing, 1:Save statistics, 2:Stats + Page profile, 3:Stats + Page profile + Timing, 4:Full log
+var delay_to_calculate;
 var stats = {}
-var delay_to_calculate = 4000;
+
+function restore_options() {
+  chrome.storage.sync.get({
+    verbosity: 'OUTPUT',
+    save_file: false,
+    delay: 4000
+  }, function(items) {
+    VERBOSITY          = items.verbosity;
+    savePageProfile    = items.save_file;
+    delay_to_calculate = items.delay;
+    log("Options found: " + VERBOSITY + ',' + savePageProfile + ',' + delay_to_calculate, "DEBUG")
+  });
+}
+restore_options();
 
 //Global variables
 var output="";
@@ -136,10 +150,11 @@ function calculateATF(){
             list_dom.push( obj_dict(elmts[j]) );
         }
     }
-    
-    stats.timing         = t;
-    stats.resources      = resources;
-    stats.list_dom       = list_dom;
+
+    if(savePageProfile>1) stats.timing         = t;
+    if(savePageProfile>1) imageProfile(imgs, stats); 
+    if(savePageProfile>2) stats.resources      = resources;
+    if(savePageProfile>3) stats.list_dom       = list_dom;
 
     //Printing results
     log("DOM:    " + stats.dom.toFixed(2) )
@@ -152,9 +167,8 @@ function calculateATF(){
     log("ATF:    " + stats.atf.toFixed(2) )
     log("PLT:    " + stats.plt.toFixed(2) )
 
-    if (savePageProfile==true){
-        profileAndWrite(imgs, stats);
-
+    if (savePageProfile>0){
+        
         var pageurl = geturlkey(window.location.toString());
         var filename  = "profile_"+pageurl+".json";
             
@@ -179,7 +193,7 @@ function index_metric(objects, min_time, max_time, metric='bytes'){
         var weight = 1.0;
         if (metric == 'images' && obj_type != 'img') weight = 0.0; 
 
-        //if (loadtime < min_time) loadtime = min_time;
+        if (loadtime < min_time) loadtime = min_time;
         if (loadtime > max_time) continue;
 
         if (metric == 'object')
@@ -454,7 +468,7 @@ function getParameterOrNull(obj, parameter){
     }
 }
 
-function profileAndWrite(imgs, stats){
+function imageProfile(imgs, stats){
     
     var imglist = [];
     for (var i = 0; i<imgs.length; i++) {

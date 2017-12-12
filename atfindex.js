@@ -119,8 +119,8 @@ function calculateATF(){
     // var count_pixels = recordImgs(screenimgs, stats, true);
     
     var t = performance.timing;
-    stats.dom = t.domContentLoadedEventEnd - t.fetchStart;
-    stats.plt = t.loadEventEnd             - t.fetchStart;
+    stats.dom = t.domContentLoadedEventEnd - t.navigationStart;
+    stats.plt = t.loadEventEnd             - t.navigationStart;
 
     var page_img_ratio = 1.0*count_pixels / (screenRect.right * screenRect.bottom);
     log("count_pixels:" + count_pixels);

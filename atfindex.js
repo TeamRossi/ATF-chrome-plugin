@@ -54,8 +54,8 @@ var output="";
 var screenRect = {};
 screenRect.left   = 0;
 screenRect.top    = 0;
-screenRect.right  = $(window).width();
-screenRect.bottom = $(window).height();
+screenRect.right  = document.documentElement.clientWidth;
+screenRect.bottom = document.documentElement.clientHeight;
 
 if (!screenRect.right)  screenRect.right = 1024;
 if (!screenRect.bottom) screenRect.bottom = 768;

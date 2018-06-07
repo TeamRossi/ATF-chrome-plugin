@@ -192,6 +192,7 @@ function calculateATF(){
     log("JS:       " + stats.last_js.toFixed(2) )
     log("CSS:      " + stats.last_css.toFixed(2) )
     log("PLT:      " + stats.plt.toFixed(2) )
+    log("ATF:      " + stats.atf.toFixed(2) ) 
 
     if (savePageProfile>0){
         var pageurl = geturlkey(window.location.toString());
@@ -350,7 +351,7 @@ function calcWebMetrics(jsResource, cssResource, stats){
         if (loadtime > stats.last_css) stats.last_css = loadtime;
     }
 
-    stats.atf = Math.max( stats.last_img, stats.last_css);
+    stats.atf = Math.max( stats.last_img, stats.last_css, stats.last_img);
 }
 
 function isDict(v) {

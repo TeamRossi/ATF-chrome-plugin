@@ -13,7 +13,21 @@ var VERBOSITY='OUTPUT';      //DEBUG, WARNING, OUTPUT (default)
 var savePageProfile=0;       //0:Nothing, 1:Save statistics, 2:Stats + Page profile, 3:Stats + Page profile + Timing, 4:Full log
 var delay_to_calculate=1000; //In milliseconds
 var hard_deadline=20000;     //Default = 20s
+var version = 1.37;
 var stats = {}
+var executed = false;
+
+function log(str, out="OUTPUT"){
+    if (out=="DEBUG" && VERBOSITY=="DEBUG"){
+        console.log(str);
+    } else if (out == "WARNING" && (VERBOSITY=="WARNING" || VERBOSITY=="DEBUG")){
+        output = output + "WARNING: " + str + "\n";
+    } else if (out == "OUTPUT"){
+        output = output + str + "\n";
+    } else {
+        //Suppress output
+    }
+}
 
 function restore_options() {
     chrome.storage.sync.get({
@@ -26,7 +40,8 @@ function restore_options() {
         savePageProfile    = items.save_file;
         delay_to_calculate = items.delay;
         hard_deadline      = items.hard_deadline;
-        log("Options -> Verbosity: " + VERBOSITY + ', save: ' + savePageProfile + ', delay: ' + delay_to_calculate + ', deadline: '+hard_deadline, "DEBUG")
+        log("Options -> Verbosity: " + VERBOSITY + ', save: ' + savePageProfile + 
+            ', delay: ' + delay_to_calculate + ', deadline: '+hard_deadline, "DEBUG")
         
         //Schedule execution: HARD_DEADLINE option
         setTimeout(function(){ 
@@ -44,7 +59,6 @@ function restore_options() {
     });
 }
 restore_options();
-// console.log("Waiting 5s");
 // setTimeout(function(ev){console.log("Time is up!")},5000);
 // console.log("Plugin ended")
 
@@ -60,17 +74,17 @@ screenRect.bottom = document.documentElement.clientHeight;
 if (!screenRect.right)  screenRect.right = 1024;
 if (!screenRect.bottom) screenRect.bottom = 768;
 
-var executed = false;
-
 //Main function
 function calculateATF(){
+
     if (executed) {
         return; 
     }
     executed = true;
-    
+    var script_start_time = performance.now();
+
     var imgs = document.getElementsByTagName("img");
-    log("Number of imgs found: " + imgs.length);
+    log("Version:          " + version);
 
     var hashImgs = {};
     var countATF = 0;
@@ -83,7 +97,7 @@ function calculateATF(){
 
         if (imgs[i].onscreen) {
             imgs[i].screen_area = overlapRect(screenRect, rect);
-            if (imgs[i].screen_area >= 0) countATF+=1;
+            if (imgs[i].screen_area > 0) countATF+=1;
             img_pixels += imgs[i].screen_area;
         }
 
@@ -108,10 +122,7 @@ function calculateATF(){
         } 
     }
 
-    log("Img pixels: "          + img_pixels, "DEBUG");
-    log("Distinct img sources Found: " + Object.keys(hashImgs).length, "OUTPUT");
-    log("Img resrouces: " + imgResource.length, "DEBUG");
-
+    
     //ATF pixel img loaded 
     img_pixels = 0; 
     var screenimgs = [];
@@ -144,7 +155,6 @@ function calculateATF(){
         log(jsResource[i], "DEBUG")
     }
 
-    log("Images above the fold considered: " + screenimgs.length)
 
     log("---- CALCULATING ATF ----", "DEBUG");
     calcWebMetrics(jsResource, cssResource, stats);
@@ -152,12 +162,25 @@ function calculateATF(){
     var t = performance.timing;
 
     var page_img_ratio = 1.0*img_pixels / (screenRect.right * screenRect.bottom);
-    log("Image to page ratio: " + page_img_ratio);
-    
     var resources = window.performance.getEntriesByType("resource");
-   
+
+    
+    var total_bytes = 0.0;
+    var hash_tld = {};
+    for (i=0; i<resources.length; i++){
+        total_bytes += resources[i].transferSize / 1024.0;
+        hash_tld[ getRootDomain(resources[i].name) ] = true;
+    }
+    stats.total_bytes    = total_bytes;
+    stats.num_origins    = Object.keys(hash_tld).length;
+    
+    stats.version        = version;
     stats.right          = screenRect.right;
     stats.bottom         = screenRect.bottom;
+    stats.num_img        = imgResource.length;
+    stats.num_js         = jsResource.length;
+    stats.num_css        = cssResource.length;
+    stats.num_res        = resources.length;
     stats.ii_plt         = index_metric(resources, stats.dom, stats.plt, metric='image');
     stats.ii_atf         = index_metric(resources, stats.dom, stats.atf, metric='image');
     stats.oi_plt         = index_metric(resources, stats.dom, stats.plt, metric='object');
@@ -166,42 +189,47 @@ function calculateATF(){
     stats.bi_atf         = index_metric(resources, stats.dom, stats.atf, metric='bytes');
 
     var tags = ['img', 'map', 'area', 'canvas', 'figcaption', 'figure', 'picture', 'audio', 'source', 'track', 'video', 'object', 'a']
-    var list_dom = [];
-    for (i=0; i<tags.length; i++){
-        var elmts = document.getElementsByTagName(tags[i]);
 
-        for (j=0; j<elmts.length; j++){
-            list_dom.push( obj_dict(elmts[j]) );
-        }
-    }
-
-    if(savePageProfile>1) stats.timing         = t;
-    if(savePageProfile>1) imageProfile(imgs, stats); 
-    if(savePageProfile>2) stats.resources      = resources;
-    if(savePageProfile>3) stats.list_dom       = list_dom;
+    if(savePageProfile>=2) stats.timing         = t;
+    if(savePageProfile>=1) imageProfile(imgs, stats); 
+    if(savePageProfile>=3) stats.resources      = resources;
 
     //Printing results
-    log("DOM:      " + stats.dom.toFixed(2) )
-    log("II_plt:   " + stats.ii_plt.toFixed(2))
-    log("II_atf:   " + stats.ii_atf.toFixed(2))
-    log("OI_plt:   " + stats.oi_plt.toFixed(2))
-    log("OI_atf:   " + stats.oi_atf.toFixed(2))
-    log("BI_plt:   " + stats.bi_plt.toFixed(2))
-    log("BI_atf:   " + stats.bi_atf.toFixed(2))
-    log("ATF_img:  " + stats.last_img.toFixed(2) )
-    log("JS:       " + stats.last_js.toFixed(2) )
-    log("CSS:      " + stats.last_css.toFixed(2) )
-    log("PLT:      " + stats.plt.toFixed(2) )
+    
+    log("Img pixels:       " + img_pixels, "DEBUG");
+    log("distinct_imgs:    " + Object.keys(hashImgs).length);
+    log("num_atf_img:      " + screenimgs.length)
+    log("image-page ratio: " + page_img_ratio.toFixed(2));
+    log("page_width        " + stats.right      .toFixed(2) )
+    log("page_height       " + stats.bottom     .toFixed(2) )
+    log("total_kbytes      " + stats.total_bytes.toFixed(2) )
+    log("num_origins       " + stats.total_bytes.toFixed(2) )
+    log("II_plt:           " + stats.ii_plt.toFixed(2))
+    log("II_atf:           " + stats.ii_atf.toFixed(2))
+    log("OI_plt:           " + stats.oi_plt.toFixed(2))
+    log("OI_atf:           " + stats.oi_atf.toFixed(2))
+    log("BI_plt:           " + stats.bi_plt.toFixed(2))
+    log("BI_atf:           " + stats.bi_atf.toFixed(2))
+    log("ATF_img:          " + stats.last_img.toFixed(2) )
+    log("JS:               " + stats.last_js.toFixed(2) )
+    log("CSS:              " + stats.last_css.toFixed(2) )
+    log("ATF:              " + stats.atf.toFixed(2) )
+    log("PLT:              " + stats.plt.toFixed(2) )
+
+    var pageurl = geturlkey(window.location.toString());
+    var filename  = "profile_"+pageurl+".json";
+        
+    var obj = {}
+    obj[pageurl] = stats;
+
+    stats.execution      = runtime;
 
     if (savePageProfile>0){
-        var pageurl = geturlkey(window.location.toString());
-        var filename  = "profile_"+pageurl+".json";
-            
-        var obj = {}
-        obj[pageurl] = stats;
         writeObjToFile(obj, filename)
     }
 
+    var runtime = performance.now() - script_start_time;
+    log("Runtime:  " + runtime.toFixed(2) + " ms")
     console.log(output)
 }
 
@@ -239,17 +267,23 @@ function index_metric(objects, min_time, max_time, metric='bytes'){
     return index 
 }
 
-
-function log(str, out="OUTPUT"){
-    if (out=="DEBUG" && VERBOSITY=="DEBUG"){
-        console.log(str);
-    } else if (out == "WARNING" && (VERBOSITY=="WARNING" || VERBOSITY=="DEBUG")){
-        output = output + "WARNING: " + str + "\n";
-    } else if (out == "OUTPUT"){
-        output = output + str + "\n";
+function getRootDomain(url) {
+    if (url.indexOf("//") > -1) {
+        domain = url.split('/')[2].split(':')[0].split('?')[0];
     } else {
-        //Suppress output
+        domain = url.split('/')[0].split(':')[0].split('?')[0];
     }
+
+    var splitArr = domain.split('.');
+    var arrLen = splitArr.length;
+
+    if (splitArr.length > 2) {
+        domain = splitArr[splitArr.length - 2] + '.' + splitArr[splitArr.length - 1];
+        if (splitArr[arrLen - 2].length == 2 && splitArr[arrLen - 1].length == 2) {
+            domain = splitArr[arrLen - 3] + '.' + domain;
+        }
+    }
+    return domain;
 }
 
 function intersectRect(r1, r2) {
@@ -284,6 +318,7 @@ function getResources(){
     var imgResource = [];
     var jsResource  = [];
     var cssResource = [];
+    var neither     = []
     var not_added = 0
 
     for (i = 0; i < resourceList.length; i++) {
@@ -313,18 +348,19 @@ function getResources(){
         }
 
         if (added == false){
-            log("Not added: " + resourceList[i].initiatorType + ": " + resourceList[i].name);
+            //log("Not added: " + resourceList[i].initiatorType + ": " + resourceList[i].name);
             not_added+=1;
+            neither.push ( resourceList[i] )
         }
     }
     
-    log("All resources found: " + resourceList.length)
-    log("Image resources found: " + imgResource.length);
-    log("CSS resources found: " + jsResource.length);
-    log("JS resources found: " + cssResource.length);
-    log("NOT added: " + not_added);
+    log("num_res:          " + resourceList.length)
+    log("num_img:          " + imgResource.length);
+    log("num_css:          " + jsResource.length);
+    log("num_js:           " + cssResource.length);
+    log("num_others:       " + not_added);
 
-    return [imgResource, jsResource, cssResource];
+    return [imgResource, jsResource, cssResource, neither];
 }
 
 function calcWebMetrics(jsResource, cssResource, stats){
@@ -350,85 +386,7 @@ function calcWebMetrics(jsResource, cssResource, stats){
         if (loadtime > stats.last_css) stats.last_css = loadtime;
     }
 
-    stats.atf = Math.max( stats.last_img, stats.last_css);
-}
-
-function isDict(v) {
-    return typeof v==='object' && v!==null && !(v instanceof Array) && !(v instanceof Date);
-}
-//Recursive object clean-up for easier storage
-function obj_dict(obj){
-    var new_obj = {}
-    for (var prop in obj){
-
-        if ( isDict(obj[prop]) ) {
-            new_obj[prop] = clean_dict(obj[prop])
-        } else {
-
-            if (obj[prop] == null) continue;
-            if (obj[prop] == '') continue;
-            if (obj[prop] == {}) continue;
-            if (obj[prop].length == 0) continue;
-
-            new_obj[prop] = obj[prop]
-        }
-
-    }
-    return new_obj
-}
-
-function clean_dict(obj){
-    var new_obj = {}
-    for (var prop in obj){
-
-        if (obj[prop] == null) continue;
-        if (obj[prop] == '') continue;
-        if (obj[prop] == {}) continue;
-        if (obj[prop].length == 0) continue;
-
-    }
-    return new_obj
-}
-
-function compareList(hashImgs, imgResource){
-    var hashRes = {}
-    for (var i =0; i<imgResource.length; i++){
-        key = geturlkey(imgResource[i].name)
-        if (key in hashRes){
-            //hashRes[key]+=1
-        } else {
-            hashRes[key]=[imgResource[i],i]
-        }
-    }
-
-    var imgKeys = Object.keys(hashImgs);
-    var resKeys = Object.keys(hashRes);
-
-    log("Distinct imgs: " + imgKeys.length  + ", Distinct res: " + resKeys.length);
-    
-    //Comparing a to b:
-    var count_no_img = 0;
-    var count_no_res = 0;
-
-    for (var i=0;i<imgKeys.length;i++){
-        key = imgKeys[i];
-        if ( !(key in hashRes) ){
-            count_no_img += 1;
-            log('Resource missing for img key: ' + key, "WARNING");
-        }
-    }
-
-    for (var i=0; i<resKeys.length; i++ ){
-        key = resKeys[i];
-        if ( !(key in hashImgs) ){
-            count_no_res += 1;
-            res = hashRes[key];
-            log('Resource missing for res key name <' +res[1]+ ">:" + res[0].name, "WARNING");
-        }
-    }
-
-    log("Missing imgs on res: " + count_no_img, "WARNING");
-    log("Missing res on imgs: " + count_no_res, "WARNING");
+    stats.atf = Math.max( stats.last_img, stats.last_css );
 }
 
 function getParameterOrNull(obj, parameter){
@@ -446,15 +404,21 @@ function imageProfile(imgs, stats){
         
         imgd.src         = imgs[i].src;
         imgd.name        = geturlkey(imgs[i].src);
-        imgd.rect        = imgs[i].getBoundingClientRect();
-        imgd.x           = getParameterOrNull(imgs[i],'x');
-        imgd.y           = getParameterOrNull(imgs[i],'y');
-        imgd.width       = getParameterOrNull(imgs[i],'width');
-        imgd.height      = getParameterOrNull(imgs[i],'height');
-        imgd.loadtime    = getParameterOrNull(imgs[i],'loadtime');
-        imgd.optimistic  = getParameterOrNull(imgs[i],'optimistic');
-        imgd.pessimistic = getParameterOrNull(imgs[i],'pessimistic');
+        
+        rect             = imgs[i].getBoundingClientRect();
+        imgd.x           = rect.x
+        imgd.y           = rect.y
+        imgd.top         = rect.top
+        imgd.bottom      = rect.bottom
+        imgd.left        = rect.left
+        imgd.right       = rect.right
+        imgd.width       = rect.width
+        imgd.height      = rect.height
 
+        imgd.loadtime    = getParameterOrNull(imgs[i],'loadtime');
+        imgd.onscreen    = getParameterOrNull(imgs[i],'onscreen');
+        imgd.screen_area = getParameterOrNull(imgs[i],'screen_area');
+        
         imglist.push(imgd);
     }
     
@@ -467,4 +431,4 @@ function writeObjToFile(object, filename){
     saveAs(blob, filename);
 }
 
-log("Plugin loaded", "DEBUG");
+console.log('ATF chrome plugin loaded')

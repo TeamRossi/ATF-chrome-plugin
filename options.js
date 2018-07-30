@@ -34,10 +34,10 @@ function restore_options() {
     delay: 1000,
     hard_deadline: 10000
   }, function(items) {
-    document.getElementById('verbosity').value     = items.verbosity;
-    document.getElementById('save_file').value     = items.save_file;
-    document.getElementById('delay').value         = items.delay;
-    document.getElementById('hard_deadline').value = items.hard_deadline;
+    document.getElementById('verbosity').value      = items.verbosity;
+    document.getElementById('save_file').value      = items.save_file;
+    document.getElementById('delay').value          = items.delay;
+    document.getElementById('hard_deadline').value  = items.hard_deadline;
   });
 }
 

@@ -194,8 +194,7 @@ function calculateATF(){
     if(savePageProfile>=1) imageProfile(imgs, stats); 
     if(savePageProfile>=3) stats.resources      = resources;
 
-    //Printing results
-    
+    //Printing results    
     log("Img pixels:       " + img_pixels, "DEBUG");
     log("distinct_imgs:    " + Object.keys(hashImgs).length);
     log("num_atf_img:      " + screenimgs.length)
@@ -386,7 +385,7 @@ function calcWebMetrics(jsResource, cssResource, stats){
         if (loadtime > stats.last_css) stats.last_css = loadtime;
     }
 
-    stats.atf = Math.max( stats.last_img, stats.last_css );
+    stats.atf = Math.max( stats.last_img, stats.last_css ); //Not including JS times for now
 }
 
 function getParameterOrNull(obj, parameter){

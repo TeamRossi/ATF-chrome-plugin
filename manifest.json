@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "Approximate ATF",
 	"short_name": "ATF",
-	"version": "1.37",
+	"version": "1.40",
 	"permissions": [
 		"activeTab",
 		"webNavigation",

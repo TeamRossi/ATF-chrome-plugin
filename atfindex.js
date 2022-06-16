@@ -300,8 +300,21 @@ function calculateATF(){
     log("PLT:              " + stats.plt.toFixed(2) )
 
     var pageurl = geturlkey(window.location.toString()).replace(/^https?:\/\//, '');
-    var filename  = "profile_"+pageurl+"_"+Date.now()+".json";
-        
+
+    const file = '/home/pi/mac.txt';
+
+    let reader = new FileReader();
+
+    reader.onload = (e) => {
+        resolve(e.target.result);
+    };
+
+    reader.onerror = (e) => alert(e.target.error.name);
+
+    var mac = reader.readAsText(file);
+
+    var filename  = ""+pageurl+"_"+mac+"_"+Date.now()+"_web.json";
+
     var obj = {}
     obj[pageurl] = stats;
 

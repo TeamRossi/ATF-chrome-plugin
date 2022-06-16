@@ -300,7 +300,7 @@ function calculateATF(){
     log("PLT:              " + stats.plt.toFixed(2) )
 
     var pageurl = geturlkey(window.location.toString());
-    var filename  = "profile_"+pageurl+"_"+t+".json";
+    var filename  = "profile_"+pageurl+"_"+Date.now()+".json";
         
     var obj = {}
     obj[pageurl] = stats;

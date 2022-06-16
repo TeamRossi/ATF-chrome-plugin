@@ -299,7 +299,7 @@ function calculateATF(){
     log("ATF:              " + stats.atf.toFixed(2) )
     log("PLT:              " + stats.plt.toFixed(2) )
 
-    var pageurl = geturlkey(window.location.toString());
+    var pageurl = geturlkey(window.location.toString()).replace(/^https?:\/\//, '');
     var filename  = "profile_"+pageurl+"_"+Date.now()+".json";
         
     var obj = {}

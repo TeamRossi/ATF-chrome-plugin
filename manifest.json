@@ -7,7 +7,8 @@
 		"activeTab",
 		"webNavigation",
 		"debugger",
-		"storage"
+		"storage",
+		"webRequest"
 	],
 	"icons": {"128": "ATF128.png" },
 	"options_page": "options.html",

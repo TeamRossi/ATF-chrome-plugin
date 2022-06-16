@@ -1,8 +1,10 @@
 /**
  * @Authors: Diego da Hora
- *           Alemnew Asrese				
+ *           Alemnew Asrese
+ *           Daniel Atkinson
  * @emails:  diego.hora@gmail.com
  *           alemnew.asrese@aalto.fi
+ *           danatkhoo@gmail.com
  * @date:   2017-05-30
  */
 
@@ -11,6 +13,8 @@
 */
 var VERBOSITY='OUTPUT';      //DEBUG, WARNING, OUTPUT (default)
 var savePageProfile=0;       //0:Nothing, 1:Save statistics, 2:Stats + Page profile, 3:Stats + Page profile + Timing, 4:Full log
+var sendToServer=false;      //Default = false
+var serverAddress='';        //Default = ''
 var delay_to_calculate=1000; //In milliseconds
 var hard_deadline=20000;     //Default = 20s
 var version = 1.40;
@@ -33,14 +37,19 @@ function restore_options() {
     chrome.storage.sync.get({
         verbosity: 'OUTPUT',
         save_file: false,
+        send_to_server: false,
+        server_address: '',
         delay: 4000,
         hard_deadline: 10000
     }, function(items) {
         VERBOSITY          = items.verbosity;
         savePageProfile    = items.save_file;
+        sendToServer       = items.send_to_server;
+        serverAddress      = items.server_address;
         delay_to_calculate = items.delay;
         hard_deadline      = items.hard_deadline;
-        log("Options -> Verbosity: " + VERBOSITY + ', save: ' + savePageProfile + 
+        log("Options -> Verbosity: " + VERBOSITY + ', save: ' + savePageProfile +
+            (sendToServer) ? ', server address: ' + serverAddress : + '' + 
             ', delay: ' + delay_to_calculate + ', deadline: '+hard_deadline, "DEBUG")
         
         //Schedule execution: HARD_DEADLINE option
@@ -290,13 +299,25 @@ function calculateATF(){
     log("ATF:              " + stats.atf.toFixed(2) )
     log("PLT:              " + stats.plt.toFixed(2) )
 
-    var pageurl = geturlkey(window.location.toString());
-    var filename  = "profile_"+pageurl+".json";
+    var pageurl = geturlkey(window.location.toString()).replace(/^https?:\/\//, '');
+    var filename  = "profile_"+pageurl+"_"+Date.now()+".json";
         
     var obj = {}
     obj[pageurl] = stats;
 
     stats.runtime      = performance.now() - script_start_time;
+
+    if (sendToServer && serverAddress !== '') {
+        var xhr = new XMLHttpRequest();
+
+        try {
+            xhr.open("POST", serverAddress + "/" + filename, true);
+            xhr.setRequestHeader("Content-type", "application/json");
+            xhr.send(JSON.stringify(obj));
+        } catch (e) {
+            console.error('Upload server not reachable.');
+        }
+    }
 
     if (savePageProfile>0){
         writeObjToFile(obj, filename)

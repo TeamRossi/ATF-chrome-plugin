@@ -313,7 +313,7 @@ function calculateATF(){
         try {
             xhr.open("POST", serverAddress + "/" + filename, true);
             xhr.setRequestHeader("Content-type", "application/json");
-            xhr.send(jsonString);
+            xhr.send(JSON.stringify(obj));
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == XMLHttpRequest.DONE && xhr.status == 200) {
                     console.log("Upload server response: " + xhr.responseText);

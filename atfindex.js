@@ -17,6 +17,7 @@ var sendToServer=false;      //Default = false
 var serverAddress='';        //Default = ''
 var delay_to_calculate=1000; //In milliseconds
 var hard_deadline=20000;     //Default = 20s
+var mac='00:00:00:00:00:00'; //Default = '00:00:00:00:00:00'
 var version = 1.40;
 var stats = {}
 var executed = false;
@@ -300,18 +301,6 @@ function calculateATF(){
     log("PLT:              " + stats.plt.toFixed(2) )
 
     var pageurl = geturlkey(window.location.toString()).replace(/^https?:\/\//, '');
-
-    const file = '/home/pi/mac.txt';
-
-    let reader = new FileReader();
-
-    reader.onload = (e) => {
-        resolve(e.target.result);
-    };
-
-    reader.onerror = (e) => alert(e.target.error.name);
-
-    var mac = reader.readAsText(file);
 
     var filename  = ""+pageurl+"_"+mac+"_"+Date.now()+"_web.json";
 

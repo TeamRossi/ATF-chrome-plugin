@@ -1,12 +1,13 @@
 
 function save_options() {
   console.log('saving...');
-  var verbosity     = document.getElementById('verbosity').value;
-  var save_file     = document.getElementById('save_file').value;
+  var verbosity          = document.getElementById('verbosity').value;
+  var save_file          = document.getElementById('save_file').value;
   var send_to_server     = document.getElementById('send_to_server').value;
   var server_address     = document.getElementById('server_address').value;
-  var delay         = document.getElementById('delay').value;
-  var hard_deadline = document.getElementById('hard_deadline').value;
+  var delay              = document.getElementById('delay').value;
+  var hard_deadline      = document.getElementById('hard_deadline').value;
+  var mac                = document.getElementById('mac').value;
 
   chrome.storage.sync.set({
     verbosity: verbosity,
@@ -14,7 +15,8 @@ function save_options() {
     send_to_server: send_to_server,
     server_address: server_address,
     delay: delay,
-    hard_deadline: hard_deadline
+    hard_deadline: hard_deadline,
+    mac: mac
   }, function() {
     // Update status to let user know options were saved.
     var status = document.getElementById('status');
@@ -38,7 +40,8 @@ function restore_options() {
     send_to_server: false,
     server_address: '', 
     delay: 1000,
-    hard_deadline: 10000
+    hard_deadline: 10000,
+    mac: '00:00:00:00:00:00'
   }, function(items) {
     document.getElementById('verbosity').value      = items.verbosity;
     document.getElementById('save_file').value      = items.save_file;
@@ -46,6 +49,7 @@ function restore_options() {
     document.getElementById('server_address').value = items.server_address;
     document.getElementById('delay').value          = items.delay;
     document.getElementById('hard_deadline').value  = items.hard_deadline;
+    document.getElementById('mac').value            = items.mac;
   });
 }
 

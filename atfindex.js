@@ -41,7 +41,8 @@ function restore_options() {
         send_to_server: false,
         server_address: '',
         delay: 4000,
-        hard_deadline: 10000
+        hard_deadline: 10000,
+        mac: '00:00:00:00:00:00'
     }, function(items) {
         VERBOSITY          = items.verbosity;
         savePageProfile    = items.save_file;
@@ -49,9 +50,11 @@ function restore_options() {
         serverAddress      = items.server_address;
         delay_to_calculate = items.delay;
         hard_deadline      = items.hard_deadline;
+        mac                = items.mac;
         log("Options -> Verbosity: " + VERBOSITY + ', save: ' + savePageProfile +
             (sendToServer) ? ', server address: ' + serverAddress : + '' + 
-            ', delay: ' + delay_to_calculate + ', deadline: '+hard_deadline, "DEBUG")
+            ', delay: ' + delay_to_calculate + ', deadline: '+hard_deadline +
+            ', device MAC: ' + mac, "DEBUG")
         
         //Schedule execution: HARD_DEADLINE option
         setTimeout(function(){ 

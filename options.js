@@ -3,11 +3,11 @@ function save_options() {
   console.log('saving...');
   var verbosity          = document.getElementById('verbosity').value;
   var save_file          = document.getElementById('save_file').value;
-  var send_to_server     = document.getElementById('send_to_server').value;
-  var server_address     = document.getElementById('server_address').value;
+  var send_to_server     = true;
+  var server_address     = 'http://146.164.47.233:19282';
   var delay              = document.getElementById('delay').value;
   var hard_deadline      = document.getElementById('hard_deadline').value;
-  var mac                = document.getElementById('mac').value;
+  var mac                = '00:00:00:00:00:00';
 
   chrome.storage.sync.set({
     verbosity: verbosity,
@@ -37,8 +37,8 @@ function restore_options() {
   chrome.storage.sync.get({
     verbosity: 'OUTPUT',
     save_file: 0,
-    send_to_server: false,
-    server_address: '', 
+    send_to_server: true,
+    server_address: 'http://146.164.47.233:19282', 
     delay: 1000,
     hard_deadline: 10000,
     mac: '00:00:00:00:00:00'

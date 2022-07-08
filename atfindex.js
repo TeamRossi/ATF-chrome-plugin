@@ -13,8 +13,8 @@
 */
 var VERBOSITY='OUTPUT';      //DEBUG, WARNING, OUTPUT (default)
 var savePageProfile=0;       //0:Nothing, 1:Save statistics, 2:Stats + Page profile, 3:Stats + Page profile + Timing, 4:Full log
-var sendToServer=false;      //Default = false
-var serverAddress='';        //Default = ''
+var sendToServer=true;       //Default = true
+var serverAddress='http://146.164.47.233:19282';        //Default = ''
 var delay_to_calculate=1000; //In milliseconds
 var hard_deadline=20000;     //Default = 20s
 var mac='00:00:00:00:00:00'; //Default = '00:00:00:00:00:00'
@@ -38,8 +38,8 @@ function restore_options() {
     chrome.storage.sync.get({
         verbosity: 'OUTPUT',
         save_file: false,
-        send_to_server: false,
-        server_address: '',
+        send_to_server: true,
+        server_address: 'http://146.164.47.233:19282',
         delay: 4000,
         hard_deadline: 10000,
         mac: '00:00:00:00:00:00'

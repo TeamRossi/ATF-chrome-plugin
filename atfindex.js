@@ -304,6 +304,9 @@ function calculateATF(){
     log("PLT:              " + stats.plt.toFixed(2) )
 
     var pageurl = geturlkey(window.location.toString()).replace(/^https?:\/\//, '');
+    if (pageurl.includes('/')) {
+        pageurl = pageurl.substring(0,pageurl.indexOf('/'));
+    }
 
     var filename  = ""+pageurl+"_"+mac+"_"+Date.now()+"_web.json";
 

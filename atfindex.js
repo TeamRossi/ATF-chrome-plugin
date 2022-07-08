@@ -314,6 +314,7 @@ function calculateATF(){
     stats.num_atf_img = screenimgs.length;
     stats.distinct_imgs = Object.keys(hashImgs).length;
     stats.img_pixels = img_pixels;
+    stats.adblock = false;
 
     var obj = {}
     obj[pageurl] = stats;

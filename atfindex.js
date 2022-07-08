@@ -310,6 +310,11 @@ function calculateATF(){
 
     var filename  = ""+pageurl+"_"+mac+"_"+Date.now()+"_web.json";
 
+    stats.img_ratio = page_img_ratio;
+    stats.num_atf_img = screenimgs.length;
+    stats.distinct_imgs = Object.keys(hashImgs).length;
+    stats.img_pixels = img_pixels;
+
     var obj = {}
     obj[pageurl] = stats;
 

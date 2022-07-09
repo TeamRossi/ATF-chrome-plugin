@@ -8,8 +8,15 @@
 		"webNavigation",
 		"debugger",
 		"storage",
+		"background",
+		"<all_urls>",
 		"webRequest"
 	],
+	"background": {
+		"scripts": [
+		  "background.js"
+		]
+	  },
 	"icons": {"128": "ATF128.png" },
 	"options_page": "options.html",
  	"description": "Obtain advanced web QoS metrics for pages you visit and an approximation of the above-the-fold time!", 

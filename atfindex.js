@@ -316,23 +316,17 @@ function calculateATF(){
     stats.img_pixels = img_pixels;
     stats.adblock = false;
     stats.resolution_type = 1;
+    stats.runtime      = performance.now() - script_start_time;
 
     var obj = {}
     obj[pageurl] = stats;
 
-    stats.runtime      = performance.now() - script_start_time;
-
-    if (sendToServer && serverAddress !== '') {
-        var xhr = new XMLHttpRequest();
-
-        try {
-            xhr.open("POST", serverAddress + "/" + filename, true);
-            xhr.setRequestHeader("Content-type", "application/json");
-            xhr.send(JSON.stringify(obj));
-        } catch (e) {
-            console.error('Upload server not reachable.');
-        }
-    }
+    chrome.storage.sync.set({
+        stats: obj,
+        filename: filename,
+    }, function() {
+        console.log('saved last session stats');
+    });
 
     if (savePageProfile>0){
         writeObjToFile(obj, filename)

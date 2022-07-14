@@ -27,7 +27,7 @@ function sendData() {
             try {
                 xhr.open("POST", serverAddress + "/" + filename, true);
                 xhr.setRequestHeader("Content-type", "application/json");
-                xhr.send(JSON.stringify(obj));
+                xhr.send(JSON.stringify(stats));
             } catch (e) {
                 console.error('Upload server not reachable.');
             }

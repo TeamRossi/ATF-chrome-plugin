@@ -1,5 +1,11 @@
-while(true) {
-    var break_loop = false;
+chrome.webRequest.onBeforeRequest.addListener(
+    function () {
+        setTimeout(sendData, 15000);
+    },
+    {urls: ["<all_urls>"]}
+);
+
+function sendData() {
     chrome.storage.sync.get({
         stats: {},
         filename: '',
@@ -12,7 +18,6 @@ while(true) {
         var serverAddress = items.server_address;
 
         if (!sendToServer || serverAddress === '') {
-            break_loop = true;
             return;
         }
 
@@ -31,9 +36,6 @@ while(true) {
                 stats: {},
                 filename: '',
             }, function() {});
-        }
-        
-        setTimeout(function(){}, 1000);
-    
+        }    
     });
 }

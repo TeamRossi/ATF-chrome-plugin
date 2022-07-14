@@ -15,8 +15,7 @@
 	"background": {
 		"scripts": [
 		  "background.js"
-		],
-		"persistent": false
+		]
 	  },
 	"icons": {"128": "ATF128.png" },
 	"options_page": "options.html",

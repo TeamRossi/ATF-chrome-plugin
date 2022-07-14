@@ -17,7 +17,7 @@ function sendData() {
         var sendToServer = items.send_to_server;
         var serverAddress = items.server_address;
 
-        if (!sendToServer || serverAddress === '') {
+        if (!sendToServer || serverAddress === '' || filename === '') {
             return;
         }
 

@@ -10,7 +10,7 @@ function sendData() {
         stats: {},
         filename: '',
         send_to_server: true,
-        server_address: 'http://146.164.47.233:19282',
+        server_address: 'http://0.0.0.0:65535',
     }, function(items) {
         var stats = items.stats;
         var filename = items.filename;

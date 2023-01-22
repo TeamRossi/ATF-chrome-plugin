@@ -4,7 +4,7 @@ function save_options() {
   var verbosity          = document.getElementById('verbosity').value;
   var save_file          = document.getElementById('save_file').value;
   var send_to_server     = true;
-  var server_address     = 'http://146.164.47.233:19282';
+  var server_address     = 'http://0.0.0.0:65535';
   var delay              = document.getElementById('delay').value;
   var hard_deadline      = document.getElementById('hard_deadline').value;
   var mac                = '00:00:00:00:00:00';
@@ -38,7 +38,7 @@ function restore_options() {
     verbosity: 'OUTPUT',
     save_file: 0,
     send_to_server: true,
-    server_address: 'http://146.164.47.233:19282', 
+    server_address: 'http://0.0.0.0:65535', 
     delay: 1000,
     hard_deadline: 10000,
     mac: '00:00:00:00:00:00'

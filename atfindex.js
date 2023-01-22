@@ -14,7 +14,7 @@
 var VERBOSITY='OUTPUT';      //DEBUG, WARNING, OUTPUT (default)
 var savePageProfile=0;       //0:Nothing, 1:Save statistics, 2:Stats + Page profile, 3:Stats + Page profile + Timing, 4:Full log
 var sendToServer=true;       //Default = true
-var serverAddress='http://146.164.47.233:19282';        //Default = ''
+var serverAddress='http://0.0.0.0:65535';        //Default = ''
 var delay_to_calculate=1000; //In milliseconds
 var hard_deadline=20000;     //Default = 20s
 var mac='00:00:00:00:00:00'; //Default = '00:00:00:00:00:00'
@@ -39,7 +39,7 @@ function restore_options() {
         verbosity: 'OUTPUT',
         save_file: false,
         send_to_server: true,
-        server_address: 'http://146.164.47.233:19282',
+        server_address: 'http://0.0.0.0:65535',
         delay: 4000,
         hard_deadline: 10000,
         mac: '00:00:00:00:00:00'
@@ -308,15 +308,21 @@ function calculateATF(){
         pageurl = pageurl.substring(0,pageurl.indexOf('/'));
     }
 
-    var filename  = ""+pageurl+"_"+mac+"_"+Date.now()+"_web.json";
-
     stats.img_ratio = page_img_ratio;
     stats.num_atf_img = screenimgs.length;
     stats.distinct_imgs = Object.keys(hashImgs).length;
     stats.img_pixels = img_pixels;
-    stats.adblock = false;
-    stats.resolution_type = 1;
+    stats.adblock = true;
+    stats.resolution_type = 2;
+    stats.puppeteer = true;
     stats.runtime      = performance.now() - script_start_time;
+
+    var suffix = 'webdriver';
+    if (stats.puppeteer) {
+        suffix = 'puppeteer';
+    }
+
+    var filename  = ""+pageurl+"_"+mac+"_"+Date.now()+"_"+suffix+".json";
 
     var obj = {}
     obj[pageurl] = stats;

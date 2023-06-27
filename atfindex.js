@@ -312,17 +312,9 @@ function calculateATF(){
     stats.num_atf_img = screenimgs.length;
     stats.distinct_imgs = Object.keys(hashImgs).length;
     stats.img_pixels = img_pixels;
-    stats.adblock = true;
-    stats.resolution_type = 2;
-    stats.puppeteer = true;
     stats.runtime      = performance.now() - script_start_time;
 
-    var suffix = 'webdriver';
-    if (stats.puppeteer) {
-        suffix = 'puppeteer';
-    }
-
-    var filename  = ""+pageurl+"_"+mac+"_"+Date.now()+"_"+suffix+".json";
+    var filename  = ""+pageurl+"_"+mac+"_"+Date.now()+".json";
 
     var obj = {}
     obj[pageurl] = stats;
